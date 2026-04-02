@@ -1,0 +1,10 @@
+{
+  "chat.tools.terminal.autoApprove": {
+    "aframe-watcher": true
+  },
+  "liveServer.settings.CustomBrowser": "chrome",
+  "liveServer.settings.ignoreFiles": ["**/*.html"],
+  "liveServer.settings.AdvanceCustomBrowserCmdLine": "",
+  "liveServer.settings.NoBrowser": false,
+  "liveServer.settings.fullReload": false
+}

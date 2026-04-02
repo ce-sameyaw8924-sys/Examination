@@ -1,0 +1,750 @@
+﻿<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>A-Frame Mansion</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+    <script src="https://unpkg.com/aframe-extras@7.2.0/dist/aframe-extras.min.js"></script>
+    <script>
+      AFRAME.registerComponent("pool-waves", {
+        schema: {
+          speed: { default: 1.0 },
+          amplitude: { default: 0.08 },
+          frequency: { default: 3.0 },
+        },
+        init: function () {
+          this.el.addEventListener("object3dset", this.update.bind(this));
+        },
+        tick: function (t) {
+          var mesh = this.el.getObject3D("mesh");
+          if (!mesh || !mesh.geometry) return;
+          var d = this.data;
+          var pos = mesh.geometry.attributes.position;
+          if (!this._orig) {
+            this._orig = new Float32Array(pos.array);
+            mesh.geometry.setAttribute("position", pos);
+          }
+          var time = t * 0.001 * d.speed;
+          for (var i = 0; i < pos.count; i++) {
+            var ox = this._orig[i * 3];
+            var oy = this._orig[i * 3 + 1];
+            pos.array[i * 3 + 2] =
+              this._orig[i * 3 + 2] +
+              Math.sin(ox * d.frequency + time * 2.0) * d.amplitude +
+              Math.cos(oy * d.frequency * 0.8 + time * 1.5) * d.amplitude * 0.6;
+          }
+          pos.needsUpdate = true;
+        },
+      });
+    </script>
+    <style>
+      body {
+        margin: 0;
+        overflow: hidden;
+      }
+      #loading-screen {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: #0a0a2e;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+        transition: opacity 0.8s ease;
+      }
+      #loading-screen.fade-out {
+        opacity: 0;
+        pointer-events: none;
+      }
+      #loading-screen h1 {
+        color: #fff;
+        font-family: "Segoe UI", Arial, sans-serif;
+        font-size: 2.5rem;
+        margin-bottom: 30px;
+        letter-spacing: 3px;
+      }
+      .spinner {
+        width: 60px;
+        height: 60px;
+        border: 4px solid rgba(255, 255, 255, 0.15);
+        border-top: 4px solid #ffeecc;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      #loading-text {
+        color: rgba(255, 255, 255, 0.6);
+        font-family: "Segoe UI", Arial, sans-serif;
+        font-size: 0.9rem;
+        margin-top: 20px;
+        letter-spacing: 1px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="loading-screen">
+      <h1>LOADING</h1>
+      <div class="spinner"></div>
+      <p id="loading-text">Loading assets...</p>
+    </div>
+    <a-scene
+      inspector="url: https://cdn.jsdelivr.net/gh/aframevr/aframe-inspector@master/dist/aframe-inspector.min.js"
+      renderer="antialias:true; colorManagement:true; physicallyCorrectLights:true"
+      shadow="type:pcfsoft"
+      vr-mode-ui="enabled:true"
+    >
+      <a-assets timeout="300000">
+        <a-asset-item
+          id="mansion3"
+          src="models/shc_mansion_3_test.glb"
+        ></a-asset-item>
+        <a-asset-item
+          id="pool-ladder"
+          src="models/ladder-pool.glb"
+        ></a-asset-item>
+
+        <a-asset-item
+          id="pool-chair"
+          src="models/wood_pool_chair.glb"
+        ></a-asset-item>
+        <a-asset-item
+          id="palm-tree"
+          src="models/plant_series__palm_tree.glb"
+        ></a-asset-item>
+        <img id="stone-tex" src="textures/stone.jpg" />
+
+        <a-asset-item
+          id="mclaren"
+          src="models/mclaren_f1_1993_by_alex.ka..glb"
+        ></a-asset-item>
+
+        <a-asset-item
+          id="bball-court"
+          src="models/free_3d_basketball_court.glb"
+        ></a-asset-item>
+
+        <a-asset-item id="kitchen" src="models/kitchen_set.glb"></a-asset-item>
+        <a-asset-item
+          id="sofa"
+          src="models/mid_century_modern_sofa.glb"
+        ></a-asset-item>
+        <a-asset-item id="tv-stand" src="models/tv_rag.glb"></a-asset-item>
+
+        <a-asset-item
+          id="dining-table"
+          src="models/dining_table.glb"
+        ></a-asset-item>
+
+        <a-asset-item
+          id="bookshelf"
+          src="models/bookshelf_dark_wood_w_books.glb"
+        ></a-asset-item>
+        <a-asset-item id="bed" src="models/bed_agape.glb"></a-asset-item>
+        <a-asset-item
+          id="pool-table"
+          src="models/pool_table.glb"
+        ></a-asset-item>
+      </a-assets>
+
+      <!-- Sky -->
+      <a-sky
+        id="sky"
+        scale="-1 1 1"
+        position="0 -50.34036 3.06799"
+        color="#0a0a2e"
+      ></a-sky>
+
+      <!-- Lighting -->
+      <a-entity
+        id="light-sun"
+        light="type:directional; color:#b4c6e0; intensity:0.4; castShadow:true"
+        position="-0.10279 20 10"
+      ></a-entity>
+      <a-entity
+        id="light-ambient"
+        light="type:ambient; color:#2a2a55; intensity:0.6"
+      ></a-entity>
+
+      <!-- Ground -->
+      <a-plane
+        id="ground"
+        geometry="height: 100; primitive: box"
+        material="color: bro; width: 513.12"
+        scale="1.76 2.05 9.09"
+        position="0.38996 -2.43051 0"
+        rotation="-90 0 0"
+        width="100"
+        height="100"
+        color="#7CBA6A"
+        shadow="receive:true"
+      ></a-plane>
+
+      <!-- Pavement around mansion -->
+      <a-plane
+        id="pavement"
+        position="-22.34864 2.25091 -2.56523"
+        rotation="-90 0 0"
+        width="15.2"
+        height="49.6"
+        material="src:#stone-tex; repeat:3 10; roughness:0.9; metalness:0.0; color:#cccccc"
+        shadow="receive:true"
+      ></a-plane>
+
+      <!-- House 5 mansion -->
+      <a-gltf-model
+        id="mansion3-model"
+        src="#mansion3"
+        position="-0.04087 -0.56772 -1.95712"
+        rotation="0 0 0"
+        scale="0.01 0.01 0.01"
+        shadow="cast:true; receive:true"
+      ></a-gltf-model>
+      <!-- Mansion Interior Lights -->
+      <a-entity
+        id="mansion-light-1"
+        light="type:point; color:#ffeecc; intensity:5; distance:40; decay:1"
+        position="2.38233 7.83833 -0.70494"
+      ></a-entity>
+      <a-entity
+        id="mansion-light-2"
+        light="type:point; color:#ffeecc; intensity:5; distance:40; decay:1"
+        position="0 3.49827 -2.14935"
+      ></a-entity>
+      <a-entity
+        id="mansion-light-3"
+        light="type:point; color:#ffeecc; intensity:4; distance:35; decay:1"
+        position="0.53276 10.84213 7.2409"
+      ></a-entity>
+      <!-- Pool Water -->
+      <a-entity id="pool" position="-9.91182 2.64287 -10.53824">
+        <!-- Water surface -->
+        <a-plane
+          id="pool-water"
+          scale="1 0.24 0.35"
+          position="-0.13053 -0.48356 0.57364"
+          rotation="-90 0 0"
+          width="6"
+          height="41"
+          segments-width="30"
+          segments-height="60"
+          pool-waves="speed:1.0; amplitude:0.06; frequency:2.5"
+          material="color:#1a9bd5; opacity:0.75; transparent:true; metalness:0.4; roughness:0.1; side:double"
+          shadow="receive:true"
+          animation__shimmer="property:material.opacity; dir:alternate; easing:easeInOutSine; loop:true; dur:1500; from:0.75; to:0.6"
+          animation__colorshift="property:material.color; dir:alternate; easing:easeInOutSine; loop:true; dur:4000; from:#1a9bd5; to:#2ec4f6"
+        ></a-plane>
+        <!-- Darker water underneath for depth illusion -->
+        <a-plane
+          id="pool-floor"
+          scale="1.02 -0.26 0.62"
+          position="-0.17083 -0.54052 0.8805"
+          rotation="-90 0 0"
+          width="5.8"
+          height="40.8"
+          material="color:#0a4a6e; opacity:0.95; side:double"
+        ></a-plane>
+      </a-entity>
+
+      <!-- Pool Ladder -->
+      <a-gltf-model
+        id="pool-ladder-model"
+        rotation="0 90 0"
+        src="#pool-ladder"
+        position="-13.06271 2.31126 -7.24124"
+        scale="1 1 1"
+        shadow="cast:true"
+      ></a-gltf-model>
+
+      <!-- Pavement 2 -->
+      <a-plane
+        id="pavement-2"
+        scale="1.02 1.015 1"
+        position="-10.94085 2.22391 -21.15179"
+        rotation="-90 0 0"
+        width="7.95"
+        height="12.3"
+        material="src:#stone-tex; repeat:1.6 2.5; roughness:0.9; metalness:0.0; color:#cccccc"
+        shadow="receive:true"
+      ></a-plane>
+
+      <!-- Pavement 4 -->
+      <a-plane
+        id="pavement-4"
+        scale="4.5 4 1"
+        position="10.94123 2.25091 -2.42124"
+        rotation="-90 0 0"
+        width="7.95"
+        height="12.3"
+        material="src:#stone-tex; repeat:7.1 9.9; roughness:0.9; metalness:0.0; color:#cccccc"
+        shadow="receive:true"
+      ></a-plane>
+
+      <!-- Pavement 3 -->
+      <a-plane
+        id="pavement-3"
+        position="-10.95358 2.26926 10.49529"
+        rotation="-90 0 0"
+        width="8.1"
+        height="23.25"
+        material="src:#stone-tex; repeat:1.6 4.7; roughness:0.9; metalness:0.0; color:#cccccc"
+        shadow="receive:true"
+      ></a-plane>
+
+      <!-- Pool Chairs -->
+      <a-gltf-model
+        id="pool-chair1"
+        src="#pool-chair"
+        position="-13.93254 2.32096 -9.03303"
+        rotation="0 90 0"
+        scale="0.7 0.7 0.7"
+        shadow="cast:true"
+      ></a-gltf-model>
+      <a-gltf-model
+        id="pool-chair2"
+        src="#pool-chair"
+        position="-13.8979 2.28818 -12.64758"
+        rotation="0 90 0"
+        scale="0.7 0.7 0.7"
+        shadow="cast:true"
+      ></a-gltf-model>
+
+      <!-- Palm Trees -->
+      <a-gltf-model
+        id="palm-tree1"
+        src="#palm-tree"
+        position="-12.07748 1.84152 17.39326"
+        scale="2.5 2.1 2"
+        shadow="cast:true"
+      ></a-gltf-model>
+      <a-gltf-model
+        id="palm-tree2"
+        src="#palm-tree"
+        position="-14 0.59115 -10.54103"
+        scale="1 1 1"
+        shadow="cast:true"
+      ></a-gltf-model>
+
+      <!-- McLaren F1 -->
+      <a-gltf-model
+        id="mclaren-model"
+        src="#mclaren"
+        position="6.16654 2.23945 -1.77145"
+        rotation="0 180 0"
+        scale="1 1 1"
+        shadow="cast:true"
+      ></a-gltf-model>
+
+      <!-- Basketball Court -->
+      <a-gltf-model
+        id="bball-court-model"
+        src="#bball-court"
+        position="18.91352 2.25 -3.0182"
+        rotation="0 90 0"
+        scale="2 2 2"
+        shadow="cast:true; receive:true"
+      ></a-gltf-model>
+
+      <!-- Kitchen -->
+      <a-gltf-model
+        id="kitchen-model"
+        src="#kitchen"
+        position="-6.50496 2.22804 -2.11478"
+        rotation="0 90 0"
+        scale="1 1 1"
+        shadow="cast:true"
+      ></a-gltf-model>
+      <!-- Sofa -->
+      <a-gltf-model
+        id="sofa-model"
+        src="#sofa"
+        position="-0.45966 2.24885 -0.78489"
+        rotation="0 90 0"
+        scale="0.03 0.03 0.03"
+        shadow="cast:true"
+      ></a-gltf-model>
+
+      <!-- TV Stand -->
+      <a-gltf-model
+        id="tv-stand-model"
+        src="#tv-stand"
+        position="2.47238 2.29948 -1.29923"
+        rotation="0 180 0"
+        scale="0.2 0.2 0.2"
+        shadow="cast:true"
+      ></a-gltf-model>
+
+      <!-- Dining Table Set -->
+      <a-gltf-model
+        id="dining-table-model"
+        src="#dining-table"
+        position="-4.37074 1.94905 -1.26661"
+        rotation="0 0 0"
+        scale="0.1 0.1 0.1"
+        shadow="cast:true"
+      ></a-gltf-model>
+
+      <!-- Bookshelf Dark Wood -->
+      <a-gltf-model
+        id="bookshelf-model"
+        src="#bookshelf"
+        position="-9.922 4.75696 3.65798"
+        rotation="0 0 0"
+        scale="1 0.6 1"
+        shadow="cast:true"
+      ></a-gltf-model>
+
+      <!-- Bed Agape -->
+      <a-gltf-model
+        id="bed-model"
+        src="#bed"
+        position="-0.58937 8.24081 3.74167"
+        rotation="0 180 0"
+        scale="0.015 0.015 0.015"
+        shadow="cast:true"
+      ></a-gltf-model>
+
+      <!-- Bed Agape 2 -->
+      <a-gltf-model
+        id="bed-model-2"
+        src="#bed"
+        position="4.85248 5.04512 -2.12902"
+        rotation="0 0 0"
+        scale="0.015 0.015 0.015"
+        shadow="cast:true"
+      ></a-gltf-model>
+
+      <!-- Pool Table -->
+      <a-gltf-model
+        id="pool-table-model"
+        src="#pool-table"
+        position="-9.27868 2.15698 1.78931"
+        rotation="0 0 0"
+        scale="1 1 1"
+        shadow="cast:true"
+      ></a-gltf-model>
+
+      <!-- Grey Fence - Front Wall (South) -->
+      <a-box
+        id="fence-front"
+        scale="0.738 1 1"
+        position="-0.58532 3.5 22.22417"
+        width="80"
+        height="5"
+        depth="0.3"
+        material="color:#777777; roughness:0.8; metalness:0.1"
+        shadow="cast:true; receive:true"
+      ></a-box>
+
+      <!-- Grey Fence - Back Wall (North) -->
+      <a-box
+        id="fence-back"
+        scale="0.74 1 1"
+        position="-0.67155 3.5 -27.49229"
+        width="80"
+        height="5"
+        depth="0.3"
+        material="color:#777777; roughness:0.8; metalness:0.1"
+        shadow="cast:true; receive:true"
+      ></a-box>
+
+      <!-- Grey Fence - Left Wall (West) -->
+      <a-box
+        id="fence-left"
+        scale="1 1 0.9"
+        position="-30.05997 3.5 -2.54339"
+        width="0.3"
+        height="5"
+        depth="55.6"
+        material="color:#777777; roughness:0.8; metalness:0.1"
+        shadow="cast:true; receive:true"
+      ></a-box>
+
+      <!-- Grey Fence - Right Wall (East) -->
+      <a-box
+        id="fence-right"
+        scale="1 1 0.9"
+        position="28.79403 3.5 -2.54194"
+        width="0.3"
+        height="5"
+        depth="55.6"
+        material="color:#777777; roughness:0.8; metalness:0.1"
+        shadow="cast:true; receive:true"
+      ></a-box>
+      <!-- Perimeter Lamp Posts -->
+
+      <!-- Front Wall (South) -->
+      <a-entity id="lamp-front-left" position="-18 2.25 21.3">
+        <a-cylinder
+          radius="0.06"
+          height="3.8"
+          color="#445566"
+          position="0 1.9 0"
+          shadow="cast:true"
+        ></a-cylinder>
+        <a-sphere
+          radius="0.25"
+          position="0 3.95 0"
+          material="color:#fffde0; emissive:#ffeeaa; emissiveIntensity:1; opacity:0.92; transparent:true"
+        ></a-sphere>
+        <a-entity
+          light="type:point; color:#ffeecc; intensity:2; distance:20; decay:2"
+          position="0 3.95 0"
+        ></a-entity>
+      </a-entity>
+
+      <a-entity id="lamp-front-center" position="0 2.25 21.3">
+        <a-cylinder
+          radius="0.06"
+          height="3.8"
+          color="#445566"
+          position="0 1.9 0"
+          shadow="cast:true"
+        ></a-cylinder>
+        <a-sphere
+          radius="0.25"
+          position="0 3.95 0"
+          material="color:#fffde0; emissive:#ffeeaa; emissiveIntensity:1; opacity:0.92; transparent:true"
+        ></a-sphere>
+        <a-entity
+          light="type:point; color:#ffeecc; intensity:2; distance:20; decay:2"
+          position="0 3.95 0"
+        ></a-entity>
+      </a-entity>
+
+      <a-entity id="lamp-front-right" position="18 2.25 21.3">
+        <a-cylinder
+          radius="0.06"
+          height="3.8"
+          color="#445566"
+          position="0 1.9 0"
+          shadow="cast:true"
+        ></a-cylinder>
+        <a-sphere
+          radius="0.25"
+          position="0 3.95 0"
+          material="color:#fffde0; emissive:#ffeeaa; emissiveIntensity:1; opacity:0.92; transparent:true"
+        ></a-sphere>
+        <a-entity
+          light="type:point; color:#ffeecc; intensity:2; distance:20; decay:2"
+          position="0 3.95 0"
+        ></a-entity>
+      </a-entity>
+
+      <!-- Back Wall (North) -->
+      <a-entity id="lamp-back-left" position="-18 2.25 -27">
+        <a-cylinder
+          radius="0.06"
+          height="3.8"
+          color="#445566"
+          position="0 1.9 0"
+          shadow="cast:true"
+        ></a-cylinder>
+        <a-sphere
+          radius="0.25"
+          position="0 3.95 0"
+          material="color:#fffde0; emissive:#ffeeaa; emissiveIntensity:1; opacity:0.92; transparent:true"
+        ></a-sphere>
+        <a-entity
+          light="type:point; color:#ffeecc; intensity:2; distance:20; decay:2"
+          position="0 3.95 0"
+        ></a-entity>
+      </a-entity>
+
+      <a-entity id="lamp-back-center" position="0 2.25 -27">
+        <a-cylinder
+          radius="0.06"
+          height="3.8"
+          color="#445566"
+          position="0 1.9 0"
+          shadow="cast:true"
+        ></a-cylinder>
+        <a-sphere
+          radius="0.25"
+          position="0 3.95 0"
+          material="color:#fffde0; emissive:#ffeeaa; emissiveIntensity:1; opacity:0.92; transparent:true"
+        ></a-sphere>
+        <a-entity
+          light="type:point; color:#ffeecc; intensity:2; distance:20; decay:2"
+          position="0 3.95 0"
+        ></a-entity>
+      </a-entity>
+
+      <a-entity id="lamp-back-right" position="18 2.25 -27">
+        <a-cylinder
+          radius="0.06"
+          height="3.8"
+          color="#445566"
+          position="0 1.9 0"
+          shadow="cast:true"
+        ></a-cylinder>
+        <a-sphere
+          radius="0.25"
+          position="0 3.95 0"
+          material="color:#fffde0; emissive:#ffeeaa; emissiveIntensity:1; opacity:0.92; transparent:true"
+        ></a-sphere>
+        <a-entity
+          light="type:point; color:#ffeecc; intensity:2; distance:20; decay:2"
+          position="0 3.95 0"
+        ></a-entity>
+      </a-entity>
+
+      <!-- Left Wall (West) -->
+      <a-entity id="lamp-left-north" position="-29.8 2.25 -14">
+        <a-cylinder
+          radius="0.06"
+          height="3.8"
+          color="#445566"
+          position="0 1.9 0"
+          shadow="cast:true"
+        ></a-cylinder>
+        <a-sphere
+          radius="0.25"
+          position="0 3.95 0"
+          material="color:#fffde0; emissive:#ffeeaa; emissiveIntensity:1; opacity:0.92; transparent:true"
+        ></a-sphere>
+        <a-entity
+          light="type:point; color:#ffeecc; intensity:2; distance:20; decay:2"
+          position="0 3.95 0"
+        ></a-entity>
+      </a-entity>
+
+      <a-entity id="lamp-left-center" position="-29.8 2.25 1">
+        <a-cylinder
+          radius="0.06"
+          height="3.8"
+          color="#445566"
+          position="0 1.9 0"
+          shadow="cast:true"
+        ></a-cylinder>
+        <a-sphere
+          radius="0.25"
+          position="0 3.95 0"
+          material="color:#fffde0; emissive:#ffeeaa; emissiveIntensity:1; opacity:0.92; transparent:true"
+        ></a-sphere>
+        <a-entity
+          light="type:point; color:#ffeecc; intensity:2; distance:20; decay:2"
+          position="0 3.95 0"
+        ></a-entity>
+      </a-entity>
+
+      <a-entity id="lamp-left-south" position="-29.8 2.25 16">
+        <a-cylinder
+          radius="0.06"
+          height="3.8"
+          color="#445566"
+          position="0 1.9 0"
+          shadow="cast:true"
+        ></a-cylinder>
+        <a-sphere
+          radius="0.25"
+          position="0 3.95 0"
+          material="color:#fffde0; emissive:#ffeeaa; emissiveIntensity:1; opacity:0.92; transparent:true"
+        ></a-sphere>
+        <a-entity
+          light="type:point; color:#ffeecc; intensity:2; distance:20; decay:2"
+          position="0 3.95 0"
+        ></a-entity>
+      </a-entity>
+
+      <!-- Right Wall (East) -->
+      <a-entity id="lamp-right-north" position="28.6 2.25 -14">
+        <a-cylinder
+          radius="0.06"
+          height="3.8"
+          color="#445566"
+          position="0 1.9 0"
+          shadow="cast:true"
+        ></a-cylinder>
+        <a-sphere
+          radius="0.25"
+          position="0 3.95 0"
+          material="color:#fffde0; emissive:#ffeeaa; emissiveIntensity:1; opacity:0.92; transparent:true"
+        ></a-sphere>
+        <a-entity
+          light="type:point; color:#ffeecc; intensity:2; distance:20; decay:2"
+          position="0 3.95 0"
+        ></a-entity>
+      </a-entity>
+
+      <a-entity id="lamp-right-center" position="28.6 2.25 1">
+        <a-cylinder
+          radius="0.06"
+          height="3.8"
+          color="#445566"
+          position="0 1.9 0"
+          shadow="cast:true"
+        ></a-cylinder>
+        <a-sphere
+          radius="0.25"
+          position="0 3.95 0"
+          material="color:#fffde0; emissive:#ffeeaa; emissiveIntensity:1; opacity:0.92; transparent:true"
+        ></a-sphere>
+        <a-entity
+          light="type:point; color:#ffeecc; intensity:2; distance:20; decay:2"
+          position="0 3.95 0"
+        ></a-entity>
+      </a-entity>
+
+      <a-entity id="lamp-right-south" position="28.6 2.25 16">
+        <a-cylinder
+          radius="0.06"
+          height="3.8"
+          color="#445566"
+          position="0 1.9 0"
+          shadow="cast:true"
+        ></a-cylinder>
+        <a-sphere
+          radius="0.25"
+          position="0 3.95 0"
+          material="color:#fffde0; emissive:#ffeeaa; emissiveIntensity:1; opacity:0.92; transparent:true"
+        ></a-sphere>
+        <a-entity
+          light="type:point; color:#ffeecc; intensity:2; distance:20; decay:2"
+          position="0 3.95 0"
+        ></a-entity>
+      </a-entity>
+
+      <!-- Player -->
+      <a-entity
+        id="rig"
+        position="-2 2.25 -25"
+        rotation="0 180 0"
+        movement-controls="enabled:true; speed:0.15; fly:true; constrainToNavMesh:false"
+      >
+        <a-entity
+          id="cam"
+          camera="near:0.01"
+          look-controls
+          position="0 1.65 0"
+        ></a-entity>
+      </a-entity>
+    </a-scene>
+    <script>
+      var scene = document.querySelector("a-scene");
+      function hideLoader() {
+        var loader = document.getElementById("loading-screen");
+        if (loader) {
+          loader.classList.add("fade-out");
+          setTimeout(function () {
+            loader.remove();
+          }, 1000);
+        }
+      }
+      // Fire as soon as scene renders first frame
+      scene.addEventListener("renderstart", hideLoader);
+      // Backup: also on loaded
+      scene.addEventListener("loaded", hideLoader);
+      // Fallback: force hide after 30 seconds no matter what
+      setTimeout(hideLoader, 30000);
+    </script>
+  </body>
+</html>
