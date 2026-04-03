@@ -7,6 +7,156 @@
     <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
     <script src="https://unpkg.com/aframe-extras@7.2.0/dist/aframe-extras.min.js"></script>
     <script>
+      // Day/Night Cycle
+      AFRAME.registerComponent("day-night-cycle", {
+        schema: { duration: { default: 120000 } },
+        init: function () {
+          this.sky = document.querySelector("#sky");
+          this.sun = document.querySelector("#light-sun");
+          this.ambient = document.querySelector("#light-ambient");
+          this.lamps = document.querySelectorAll("[id^=lamp-]");
+        },
+        tick: function (t) {
+          var d = this.data.duration;
+          var phase = (t % d) / d; // 0-1 repeating
+          var angle = phase * Math.PI * 2;
+          var dayFactor = Math.max(0, Math.sin(angle));
+          var nightFactor = 1 - dayFactor;
+
+          // Sky color: lerp between night blue and day blue
+          var r = Math.round(10 + dayFactor * 125);
+          var g = Math.round(10 + dayFactor * 180);
+          var b = Math.round(46 + dayFactor * 209);
+          this.sky.setAttribute("color", "rgb(" + r + "," + g + "," + b + ")");
+
+          // Directional light intensity
+          this.sun.setAttribute("light", "intensity", 0.1 + dayFactor * 1.4);
+          // Ambient light
+          var ar = Math.round(42 + dayFactor * 160);
+          var ag = Math.round(42 + dayFactor * 160);
+          var ab = Math.round(85 + dayFactor * 130);
+          this.ambient.setAttribute(
+            "light",
+            "color",
+            "rgb(" + ar + "," + ag + "," + ab + ")",
+          );
+          this.ambient.setAttribute(
+            "light",
+            "intensity",
+            0.4 + dayFactor * 0.6,
+          );
+
+          // Lamp posts: bright at night, dim during day
+          var lampIntensity = 0.2 + nightFactor * 1.8;
+          var lampOpacity = 0.3 + nightFactor * 0.62;
+          for (var i = 0; i < this.lamps.length; i++) {
+            var sphere = this.lamps[i].querySelector("a-sphere");
+            var light = this.lamps[i].querySelector("[light]");
+            if (light) light.setAttribute("light", "intensity", lampIntensity);
+            if (sphere) sphere.setAttribute("material", "opacity", lampOpacity);
+          }
+        },
+      });
+
+      // Firefly Particles
+      AFRAME.registerComponent("fireflies", {
+        schema: {
+          count: { default: 60 },
+          range: { default: 40 },
+          height: { default: 8 },
+        },
+        init: function () {
+          this.flies = [];
+          var geo = new THREE.SphereGeometry(0.04, 4, 4);
+          for (var i = 0; i < this.data.count; i++) {
+            var mat = new THREE.MeshBasicMaterial({
+              color: 0xffee88,
+              transparent: true,
+              opacity: Math.random() * 0.5 + 0.5,
+            });
+            var mesh = new THREE.Mesh(geo, mat);
+            mesh.position.set(
+              (Math.random() - 0.5) * this.data.range * 2,
+              Math.random() * this.data.height + 2.5,
+              (Math.random() - 0.5) * this.data.range * 2,
+            );
+            this.flies.push({
+              mesh: mesh,
+              speed: Math.random() * 0.3 + 0.1,
+              offset: Math.random() * Math.PI * 2,
+              drift: (Math.random() - 0.5) * 0.02,
+            });
+            this.el.object3D.add(mesh);
+          }
+        },
+        tick: function (t) {
+          var time = t * 0.001;
+          for (var i = 0; i < this.flies.length; i++) {
+            var f = this.flies[i];
+            f.mesh.position.y += Math.sin(time * f.speed + f.offset) * 0.003;
+            f.mesh.position.x += f.drift;
+            f.mesh.material.opacity =
+              0.3 + Math.sin(time * f.speed * 2 + f.offset) * 0.4;
+            // Wrap around if too far
+            if (Math.abs(f.mesh.position.x) > this.data.range) f.drift *= -1;
+          }
+        },
+      });
+
+      // Car Engine Sound on Click
+      AFRAME.registerComponent("engine-sound", {
+        init: function () {
+          this.audioCtx = null;
+          this.el.classList.add("clickable");
+          this.el.addEventListener("click", this.playEngine.bind(this));
+        },
+        playEngine: function () {
+          if (!this.audioCtx)
+            this.audioCtx = new (
+              window.AudioContext || window.webkitAudioContext
+            )();
+          var ctx = this.audioCtx;
+          var now = ctx.currentTime;
+          // Rumble oscillator
+          var osc1 = ctx.createOscillator();
+          osc1.type = "sawtooth";
+          osc1.frequency.setValueAtTime(55, now);
+          osc1.frequency.linearRampToValueAtTime(120, now + 0.3);
+          osc1.frequency.linearRampToValueAtTime(180, now + 0.8);
+          osc1.frequency.linearRampToValueAtTime(85, now + 2.0);
+          // Second harmonic
+          var osc2 = ctx.createOscillator();
+          osc2.type = "square";
+          osc2.frequency.setValueAtTime(110, now);
+          osc2.frequency.linearRampToValueAtTime(240, now + 0.3);
+          osc2.frequency.linearRampToValueAtTime(360, now + 0.8);
+          osc2.frequency.linearRampToValueAtTime(170, now + 2.0);
+          // Gain envelope
+          var gain = ctx.createGain();
+          gain.gain.setValueAtTime(0, now);
+          gain.gain.linearRampToValueAtTime(0.15, now + 0.1);
+          gain.gain.linearRampToValueAtTime(0.25, now + 0.4);
+          gain.gain.linearRampToValueAtTime(0.1, now + 1.5);
+          gain.gain.linearRampToValueAtTime(0, now + 2.5);
+          // Distortion
+          var dist = ctx.createWaveShaper();
+          var curve = new Float32Array(256);
+          for (var i = 0; i < 256; i++) {
+            var x = i / 128 - 1;
+            curve[i] = ((Math.PI + 200) * x) / (Math.PI + 200 * Math.abs(x));
+          }
+          dist.curve = curve;
+          osc1.connect(dist);
+          osc2.connect(dist);
+          dist.connect(gain);
+          gain.connect(ctx.destination);
+          osc1.start(now);
+          osc2.start(now);
+          osc1.stop(now + 2.5);
+          osc2.stop(now + 2.5);
+        },
+      });
+
       AFRAME.registerComponent("pool-waves", {
         schema: {
           speed: { default: 1.0 },
@@ -43,9 +193,56 @@
         margin: 0;
         overflow: hidden;
       }
+      /* Mobile Joystick */
+      #mobile-controls {
+        display: none;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        z-index: 1000;
+        pointer-events: none;
+      }
+      @media (max-width: 768px), (pointer: coarse) {
+        #mobile-controls {
+          display: flex;
+          justify-content: space-between;
+          padding: 20px 24px;
+        }
+      }
+      .joystick-zone {
+        width: 140px;
+        height: 140px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.12);
+        border: 2px solid rgba(255, 255, 255, 0.25);
+        position: relative;
+        pointer-events: auto;
+        touch-action: none;
+      }
+      .joystick-knob {
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.4);
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        pointer-events: none;
+      }
     </style>
   </head>
   <body>
+    <!-- Mobile Joystick Controls -->
+    <div id="mobile-controls">
+      <div class="joystick-zone" id="move-joystick">
+        <div class="joystick-knob" id="move-knob"></div>
+      </div>
+      <div class="joystick-zone" id="look-joystick">
+        <div class="joystick-knob" id="look-knob"></div>
+      </div>
+    </div>
     <a-scene
       inspector="url: https://cdn.jsdelivr.net/gh/aframevr/aframe-inspector@master/dist/aframe-inspector.min.js"
       renderer="antialias:true; colorManagement:true; physicallyCorrectLights:true"
@@ -100,6 +297,15 @@
         ></a-asset-item>
         <a-asset-item id="bed" src="models/bed_agape.glb"></a-asset-item>
       </a-assets>
+
+      <!-- Day/Night Cycle Controller -->
+      <a-entity day-night-cycle="duration:120000"></a-entity>
+
+      <!-- Fireflies -->
+      <a-entity
+        fireflies="count:60; range:35; height:8"
+        position="0 0 0"
+      ></a-entity>
 
       <!-- Sky -->
       <a-sky
@@ -287,6 +493,7 @@
         rotation="0 180 0"
         scale="1 1 1"
         shadow="cast:true"
+        engine-sound
       ></a-gltf-model>
 
       <!-- Basketball Court -->
@@ -656,13 +863,92 @@
         rotation="0 180 0"
         movement-controls="enabled:true; speed:0.15; fly:true; constrainToNavMesh:false"
       >
-        <a-entity
-          id="cam"
-          camera="near:0.01"
-          look-controls
-          position="0 1.65 0"
-        ></a-entity>
+        <a-entity id="cam" camera="near:0.01" look-controls position="0 1.65 0">
+          <a-cursor
+            fuse="false"
+            raycaster="objects:.clickable"
+            material="color:white; opacity:0.5"
+            geometry="primitive:ring; radiusInner:0.005; radiusOuter:0.01"
+          ></a-cursor>
+        </a-entity>
       </a-entity>
     </a-scene>
+
+    <!-- Mobile Joystick Script -->
+    <script>
+      (function () {
+        var rig = document.getElementById("rig");
+        var cam = document.getElementById("cam");
+        function setupJoystick(zoneId, knobId, callback) {
+          var zone = document.getElementById(zoneId);
+          var knob = document.getElementById(knobId);
+          if (!zone) return;
+          var active = false,
+            startX = 0,
+            startY = 0,
+            maxR = 50;
+          zone.addEventListener("touchstart", function (e) {
+            e.preventDefault();
+            active = true;
+            var t = e.touches[0];
+            startX = t.clientX;
+            startY = t.clientY;
+          });
+          zone.addEventListener("touchmove", function (e) {
+            if (!active) return;
+            e.preventDefault();
+            var t = e.touches[0];
+            var dx = t.clientX - startX;
+            var dy = t.clientY - startY;
+            var dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist > maxR) {
+              dx = (dx / dist) * maxR;
+              dy = (dy / dist) * maxR;
+            }
+            knob.style.transform =
+              "translate(calc(-50% + " + dx + "px), calc(-50% + " + dy + "px))";
+            callback(dx / maxR, dy / maxR);
+          });
+          function end() {
+            active = false;
+            knob.style.transform = "translate(-50%, -50%)";
+            callback(0, 0);
+          }
+          zone.addEventListener("touchend", end);
+          zone.addEventListener("touchcancel", end);
+        }
+        var moveX = 0,
+          moveY = 0,
+          lookX = 0,
+          lookY = 0;
+        setupJoystick("move-joystick", "move-knob", function (x, y) {
+          moveX = x;
+          moveY = y;
+        });
+        setupJoystick("look-joystick", "look-knob", function (x, y) {
+          lookX = x;
+          lookY = y;
+        });
+        var speed = 0.12;
+        var lookSpeed = 0.6;
+        function tick() {
+          if (Math.abs(moveX) > 0.05 || Math.abs(moveY) > 0.05) {
+            var rot = rig.getAttribute("rotation");
+            var rad = THREE.MathUtils.degToRad(rot.y);
+            var pos = rig.getAttribute("position");
+            pos.x += (-moveX * Math.cos(rad) - moveY * Math.sin(rad)) * speed;
+            pos.z += (moveX * Math.sin(rad) - moveY * Math.cos(rad)) * speed;
+            rig.setAttribute("position", pos);
+          }
+          if (Math.abs(lookX) > 0.05 || Math.abs(lookY) > 0.05) {
+            var rot = rig.getAttribute("rotation");
+            rot.y -= lookX * lookSpeed;
+            rig.setAttribute("rotation", rot);
+          }
+          requestAnimationFrame(tick);
+        }
+        requestAnimationFrame(tick);
+      })();
+    </script>
   </body>
 </html>
